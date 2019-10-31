@@ -1,12 +1,39 @@
-from .random_crop import random_crop
-from .flips import flip_horizon
-from .rotates import rotate_90, rotate_angle
-from .normalize import normalize_per_channel, normalize_per_image
+import numpy as np
 
-from .misc import random_noise, resize_image
+from PIL import Image
+
+from .adjust import AdjustBrightness, AdjustContrast, AdjustGamma, AdjustHue, AdjustSaturation
+# from .crop import RandomCrop, CenterCrop, RandomSizedCrop
+from .crop import RandomCrop, CenterCrop
+from .flip import RandomHorizontallyFlip, RandomVerticallyFlip
+from .scale import Scale, FreeScale, RandomSized
+from .rotate import RandomRotate, RotateDegree
 
 __all__ = [
-    'random_crop', 'flip_horizon', 'rotate_90', 'rotate_angle',
-    'normalize_per_channel', 'normalize_per_image', 'random_noise',
-    'resize_image'
+    'Compose', 'RandomCrop', 'AdjustBrightness', 'AdjustContrast',
+    'AdjustGamma', 'AdjustHue', 'AdjustSaturation', 'CenterCrop',
+    'RandomHorizontallyFlip', 'RandomVerticallyFlip', 'Scale', 'FreeScale',
+    'RandomSized', 'RotateDegree', 'RandomRotate'
 ]
+
+
+class Compose(object):
+
+  def __init__(self, augmentations):
+    self.augmentations = augmentations
+    self.PIL2Numpy = False
+
+  def __call__(self, img, mask):
+    if isinstance(img, np.ndarray):
+      img = Image.fromarray(img, mode="RGB")
+      mask = Image.fromarray(mask, mode="L")
+      self.PIL2Numpy = True
+
+    assert img.size == mask.size
+    for a in self.augmentations:
+      img, mask = a(img, mask)
+
+    if self.PIL2Numpy:
+      img, mask = np.array(img), np.array(mask, dtype=np.uint8)
+
+    return img, mask
