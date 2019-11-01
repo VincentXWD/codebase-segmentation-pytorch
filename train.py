@@ -163,15 +163,17 @@ def main():
   logger, cfg, run_dir = get_logger_and_parser()
 
   # TODO(xwd): Adapt model type with config settings.
+  model_path = os.path.join(run_dir, 'model')
   model = network.get_model()
+  if cfg['multi_gpu']:
+    model = nn.DataParallel(model).cuda()
   if cfg['sync_bn']:
     logger.info('Convert batch norm layers to be sync.')
     model = convert_model(model).cuda()
   logger.info(
       f'Segmentation Network Total Params number: {count_model_param(model) / 1E6}M'
   )
-  check_dir_exists(os.path.join(run_dir, 'model'))
-  model_save_path = read_newest_model_path(os.path.join(run_dir, 'model'))
+  check_dir_exists(model_path)
 
   # Set optimizer.
   # TODO(xwd): Set different learning rate for different parts of the model.
@@ -190,13 +192,18 @@ def main():
         use_model='multi' if cfg['multi_gpu'] else 'single')
     optimizer.load_state_dict(checkpoint['optimizer'])
   else:
+    model_save_path = read_newest_model_path(model_path)
     if model_save_path is not None:
       checkpoint = torch.load(model_save_path)
       cfg['start_epoch'] = checkpoint['epoch']
-      model = safe_loader(
-          checkpoint['state_dict'],
-          use_model='multi' if cfg['multi_gpu'] else 'single')
+      model.load_state_dict(
+          safe_loader(
+              checkpoint['state_dict'],
+              use_model='multi' if cfg['multi_gpu'] else 'single'))
       optimizer.load_state_dict(checkpoint['optimizer'])
+      logger.info(
+          f"Pretrained checkpoint loaded. Start from epoch {cfg['start_epoch']}."
+      )
 
   # Set data loader.
   train_loader = get_dataloader(cfg)
@@ -205,15 +212,15 @@ def main():
   criterion = nn.CrossEntropyLoss(ignore_index=cfg['ignore_label'])
 
   # Training.
-  for epoch in range(cfg['epochs']):
+  for epoch in range(cfg['start_epoch'], cfg['epochs']):
     # TODO(xwd): Add auxiliary loss as an optional loss for some specific type of models.
     epoch_log = epoch + 1
     _ = train_epoch(cfg, logger, train_loader, model, optimizer, criterion,
                     epoch)
 
     if (epoch_log % cfg['save_freq'] == 0):
-      filename = os.path.join(model_save_path,
-                              'checkpoint_' + str(epoch_log) + '.pth')
+      print(model_path, f'checkpoint_{epoch_log}.pth')
+      filename = os.path.join(model_path, f'checkpoint_{epoch_log}.pth')
       logger.info('Saving checkpoint to: ' + filename)
       torch.save(
           {
@@ -223,8 +230,7 @@ def main():
           }, filename)
       if epoch_log / cfg['save_freq'] > 2:
         deletename = os.path.join(
-            model_save_path,
-            'checkpoint_' + str(epoch_log - cfg['save_freq'] * 2) + '.pth')
+            model_path, f"checkpoint_{epoch_log - cfg['save_freq'] * 2}.pth")
         os.remove(deletename)
 
 
