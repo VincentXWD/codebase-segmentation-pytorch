@@ -7,4 +7,6 @@ def get_model():
       encoder_name='dilated_resnet101',
       encoder_weights='imagenet',
       decoder_use_batchnorm=True,
-      classes=19)
+      classes=34)
+
+

@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .dahead import DANetHead
 from ..common.blocks import Conv2dReLU
-from ..base.model import Model
+from ..base.basemodel import BaseModel
 
 
 class DecoderBlock(nn.Module):
@@ -41,7 +40,7 @@ class CenterBlock(DecoderBlock):
     return self.block(x)
 
 
-class UnetDecoder(Model):
+class UnetDecoder(BaseModel):
 
   def __init__(self,
                encoder_channels,
@@ -49,7 +48,6 @@ class UnetDecoder(Model):
                final_channels=1,
                use_batchnorm=True,
                center=False,
-               use_dahead=False,
                classes=1):
     super().__init__()
 
@@ -75,11 +73,6 @@ class UnetDecoder(Model):
     self.final_conv = nn.Conv2d(
         out_channels[4], final_channels, kernel_size=(1, 1))
 
-    self.use_dahead = use_dahead
-    if self.use_dahead:
-      self.dahead = DANetHead(encoder_channels[0], encoder_channels[0],
-                              nn.BatchNorm2d)
-
     self.initialize()
 
   def compute_channels(self, encoder_channels, decoder_channels):
@@ -98,9 +91,6 @@ class UnetDecoder(Model):
 
     if self.center:
       encoder_head = self.center(encoder_head)
-
-    if self.use_dahead:
-      encoder_head = self.dahead(encoder_head)
 
     x = self.layer1([encoder_head, skips[0]])
     x = self.layer2([x, skips[1]])

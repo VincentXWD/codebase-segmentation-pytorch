@@ -1,3 +1,12 @@
+"""
+@author: Wendong Xu
+@contact: kirai.wendong@gmail.com
+@file: safe_loader.py
+@time: 2019-11-01 16:58
+@desc:
+"""
+
+
 def single_gpu_load_multi_gpu_model(checkpoint):
   """ Use the multi-gpus trained model in a single gpu.
   """
@@ -26,7 +35,7 @@ def safe_loader(checkpoint, use_model='multi'):
   """ Load checkpoint in a safe way. Helps check the model's training status.
   If use_model='multi', reads checkpoint into single gpu, else multi gpus.
   """
-  for k, v in checkpoint.items():
+  for k, _ in checkpoint.items():
     if use_model == 'multi':
       if 'module' in k:
         return checkpoint

@@ -1,5 +1,4 @@
 from .decoder import UnetDecoder
-from .octave_decoder import OctaveUnetDecoder
 from ..base import EncoderDecoder
 from ..encoders import get_encoder
 
@@ -45,7 +44,6 @@ class Unet(EncoderDecoder):
         final_channels=classes,
         use_batchnorm=True,
         center=center,
-        use_dahead=False,
     )
 
     super().__init__(encoder, decoder, activation)

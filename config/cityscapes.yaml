@@ -1,0 +1,31 @@
+DATA:
+  classes: 30
+  data_path: '/data/xwd/cityscapes/'
+
+TRAIN:
+  exp_name: 'unet_dilated_resnet101_baseline'
+  arch: unet
+  layers: 101
+  sync_bn: True
+  train_h: 512
+  train_w: 512
+  scale_min: 0.5
+  scale_max: 2.0
+  rotate_min: -10
+  rotate_max: 10
+  # TODO(xwd): Add zoom for Cityscapes.
+  # zoom_factor: 8  # zoom factor for final prediction during training, be in [1, 2, 4, 8]
+  ignore_label: 255
+  batch_size: 8
+  num_workers: 8
+  base_lr: 0.01
+  epochs: 200
+  start_epoch: 0
+  power: 0.9
+  momentum: 0.9
+  weight_decay: 0.0001
+  print_freq: 10
+  save_freq: 1
+  resume:  # path to latest checkpoint (default: none)
+  multi_gpu: True
+
