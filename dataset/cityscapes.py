@@ -175,9 +175,10 @@ class Cityscapes(data.Dataset):
 
     target = tuple(targets) if len(targets) > 1 else targets[0]
 
+    image = np.asarray(image)
+    target = np.asarray(target)
+
     if self.transform:
-      image = np.asarray(image)
-      target = np.asarray(target)
       image, target = self.transform(image, target)
 
     return image, target
