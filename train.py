@@ -187,9 +187,10 @@ def main():
   if cfg['resume'] is not None and os.path.isfile(cfg['resume']):
     checkpoint = torch.load(cfg['resume'])
     cfg['start_epoch'] = checkpoint['epoch']
-    model = safe_loader(
-        checkpoint['state_dict'],
-        use_model='multi' if cfg['multi_gpu'] else 'single')
+    model.load_state_dict(
+        safe_loader(
+            checkpoint['state_dict'],
+            use_model='multi' if cfg['multi_gpu'] else 'single'))
     optimizer.load_state_dict(checkpoint['optimizer'])
   else:
     model_save_path = read_newest_model_path(model_path)
