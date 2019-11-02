@@ -1,9 +1,9 @@
 DATA:
-  classes: 30
+  classes: 34
   data_path: '/data/xwd/cityscapes/'
 
 TRAIN:
-  exp_name: 'unet_dilated_resnet101_baseline'
+  exp_name: unet_dilated_resnet101_baseline
   arch: unet
   layers: 101
   sync_bn: True
@@ -29,3 +29,13 @@ TRAIN:
   resume:  # path to latest checkpoint (default: none)
   multi_gpu: True
 
+TEST:
+  split: val  # split in [train, val and test]
+  base_size: 2048  # based size for scaling
+  test_h: 512
+  test_w: 512
+  scales: [1.0]  # evaluation scales, ms as [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+  index_start: 0  # evaluation start index in list
+  index_step: 0  # evaluation step index in list, 0 means to end
+  model_path: runs/cityscapes/unet_dilated_resnet101_baseline/model/checkpoint_200.pth  # evaluation model path
+  save_folder: runs/cityscapes/unet_dilated_resnet101_baseline/result/checkpoint_200/val/  # results save folder

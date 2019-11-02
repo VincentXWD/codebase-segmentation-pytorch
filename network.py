@@ -8,5 +8,3 @@ def get_model():
       encoder_weights='imagenet',
       decoder_use_batchnorm=True,
       classes=34)
-
-
