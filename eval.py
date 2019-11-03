@@ -64,18 +64,18 @@ def get_logger_and_parser():
 def get_dataloader(cfg):
   # TODO(xwd): Adaptive normalization by some large image.
   # E.g. In medical image processing, WSI image is very large and different to ordinary images.
-  val_data = cityscapes.Cityscapes(
+  eval_data = cityscapes.Cityscapes(
       cfg['data_path'], split='val', transform=None)
-
-  val_loader = DataLoader(
-      val_data,
-      batch_size=1,
+  data_size = len(eval_data)
+  eval_loader = DataLoader(
+      eval_data,
+      batch_size=16,
       shuffle=False,
-      num_workers=8,
+      num_workers=16,
       pin_memory=True,
       drop_last=False)
 
-  return val_loader
+  return eval_loader, data_size
 
 
 def eval_each(model, image, mean, std=None, flip=True):
@@ -155,7 +155,7 @@ def eval_in_scale(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
   return prediction
 
 
-def eval(cfg, logger, model, eval_loader):
+def eval(cfg, logger, model, data_size, eval_loader):
   value_scale = 255
   mean = [0.485, 0.456, 0.406]
   mean = [item * value_scale for item in mean]
@@ -169,50 +169,54 @@ def eval(cfg, logger, model, eval_loader):
   end = time.time()
   model.eval()
 
+  process_count = 0
+
   for i, (image, label) in enumerate(eval_loader):
+    assert image.shape[0] == label.shape[0]
     data_time.update(time.time() - end)
-    image = np.squeeze(image.numpy(), axis=0)
-    label = np.squeeze(label.numpy(), axis=0)
+    for j in range(image.shape[0]):
+      cur_image = image[j].numpy()
+      cur_label = label[j].numpy()
 
-    h, w, _ = image.shape
-    prediction = np.zeros((h, w, cfg['classes']), dtype=float)
+      h, w, _ = cur_image.shape
+      prediction = np.zeros((h, w, cfg['classes']), dtype=float)
 
-    for scale in cfg['scales']:
-      long_size = round(scale * cfg['base_size'])
-      new_h = long_size
-      new_w = long_size
-      if h > w:
-        new_w = round(long_size / float(h) * w)
-      else:
-        new_h = round(long_size / float(w) * h)
-      image_scale = cv2.resize(
-          image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-      prediction += eval_in_scale(model, image_scale, cfg['classes'],
-                                  cfg['test_h'], cfg['test_w'], h, w, mean, std)
+      for scale in cfg['scales']:
+        long_size = round(scale * cfg['base_size'])
+        new_h = long_size
+        new_w = long_size
+        if h > w:
+          new_w = round(long_size / float(h) * w)
+        else:
+          new_h = round(long_size / float(w) * h)
+        image_scale = cv2.resize(
+            cur_image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        prediction += eval_in_scale(model, image_scale, cfg['classes'],
+                                    cfg['test_h'], cfg['test_w'], h, w, mean, std)
 
-    prediction /= len(cfg['scales'])
-    # N(WHk)
-    prediction = np.argmax(prediction, axis=2)
-    batch_time.update(time.time() - end)
-    end = time.time()
+      prediction /= len(cfg['scales'])
+      prediction = np.argmax(prediction, axis=2)
+      batch_time.update(time.time() - end)
+      end = time.time()
+      process_count += 1
 
-    if ((i + 1) % 10 == 0) or (i + 1 == len(eval_loader)):
-      logger.info('Test: [{}/{}] '
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                  'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}).'.format(
-                      i + 1,
-                      len(eval_loader),
-                      data_time=data_time,
-                      batch_time=batch_time))
+      if process_count % 10 == 0 or process_count == data_size:
+        logger.info('Test: [{}/{}] '
+                    'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
+                    'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}).'.format(
+                        process_count,
+                        data_size,
+                        data_time=data_time,
+                        batch_time=batch_time))
 
-    if label is not None:
-      hist_tmp, labeled_tmp, correct_tmp = ruler.hist_info(
-          cfg['classes'], prediction, label)
-      eval_results.append({
-          'hist': hist_tmp,
-          'labeled': labeled_tmp,
-          'correct': correct_tmp
-      })
+      if cur_label is not None:
+        hist_tmp, labeled_tmp, correct_tmp = ruler.hist_info(
+            cfg['classes'], prediction, cur_label)
+        eval_results.append({
+            'hist': hist_tmp,
+            'labeled': labeled_tmp,
+            'correct': correct_tmp
+        })
 
   ruler(eval_results, cfg['classes'])
 
@@ -233,7 +237,7 @@ def main():
   check_dir_exists(model_path)
 
   # Get dataloader.
-  eval_loader = get_dataloader(cfg)
+  eval_loader, data_size = get_dataloader(cfg)
 
   # Load model.
   checkpoint = torch.load(cfg['model_path'])
@@ -242,7 +246,7 @@ def main():
           checkpoint['state_dict'],
           use_model='multi' if cfg['multi_gpu'] else 'single'))
 
-  eval(cfg, logger, model, eval_loader)
+  eval(cfg, logger, model, data_size, eval_loader)
 
 
 if __name__ == '__main__':
