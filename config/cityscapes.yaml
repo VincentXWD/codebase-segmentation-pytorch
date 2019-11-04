@@ -30,6 +30,7 @@ TRAIN:
   print_freq: 10
   save_freq: 1
   resume:  # path to latest checkpoint (default: none)
+  num_of_gpus: 1
   multi_gpu: True
 TEST:
   split: val  # split in [train, val and test]

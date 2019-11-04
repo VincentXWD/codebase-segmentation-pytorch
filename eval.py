@@ -1,13 +1,11 @@
 """
 @author: Wendong Xu
 @contact: kirai.wendong@gmail.com
-@file: train.py
+@file: eval.py
 @time: 2019-11-02 20:11
 @desc:
 """
-# Use CUDA by default. Currently can only use one GPU. For this GPU, calculate only a batch with size 1 at a time.
-# It's easy to control the data streaming when use multi-GPUs even multi-workers.
-# # TODO(xwd): Implement concurrent & parallel by myself.
+# Use CUDA by default.
 import argparse
 import os
 import torch
@@ -17,10 +15,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import cv2
+import torch.multiprocessing as mp
 
 import network
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from tools.statistics import count_model_param
 from utils.safe_loader import safe_loader
@@ -33,31 +32,23 @@ from dataset import cityscapes
 
 def get_logger_and_parser():
   parser = argparse.ArgumentParser(description='config')
-  parser.add_argument(
-      '--config',
-      type=str,
-      default='config/cityscapes.yaml',
-      help='Configuration file to use',
-  )
-
-  parser.add_argument(
-      'opts',
-      help='',
-      default=None,
-      nargs=argparse.REMAINDER)
+  parser.add_argument('--config', type=str, default='config/cityscapes.yaml', help='Configuration file to use')
+  parser.add_argument('--num_of_gpus', type=int, default=0)
+  parser.add_argument('opts', help='', default=None, nargs=argparse.REMAINDER)
 
   args = parser.parse_args()
 
   assert args.config is not None
   cfg = config.load_cfg_from_cfg_file(args.config)
-  args_dict = dict()
 
   if args.opts is not None:
       cfg = config.merge_cfg_from_list(cfg, args.opts)
+  args_dict = dict()
 
   for arg in vars(args):
     args_dict[arg] = getattr(args, arg)
-  args_dict.update(cfg)
+  cfg.update(args_dict)
+
 
   run_dir = os.path.join('runs',
                          os.path.basename(args.config)[:-5], cfg['exp_name'])
@@ -71,21 +62,13 @@ def get_logger_and_parser():
   return logger, cfg, run_dir
 
 
-def get_dataloader(cfg):
+def get_dataset(cfg):
   # TODO(xwd): Adaptive normalization by some large image.
   # E.g. In medical image processing, WSI image is very large and different to ordinary images.
-  eval_data = cityscapes.Cityscapes(
+  eval_dataset = cityscapes.Cityscapes(
       cfg['data_path'], split='val', transform=None)
-  data_size = len(eval_data)
-  eval_loader = DataLoader(
-      eval_data,
-      batch_size=16,
-      shuffle=False,
-      num_workers=16,
-      pin_memory=True,
-      drop_last=False)
 
-  return eval_loader, data_size
+  return eval_dataset
 
 
 def eval_each(model, image, mean, std=None, flip=True):
@@ -166,7 +149,9 @@ def eval_in_scale(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
   return prediction
 
 
-def eval(cfg, logger, model, data_size, eval_loader):
+def eval_single_gpu(worker, cfg, logger, eval_dataset, results_queue):
+  os.environ["CUDA_VISIBLE_DEVICES"] = str(worker)
+
   value_scale = 255
   mean = [0.485, 0.456, 0.406]
   mean = [item * value_scale for item in mean]
@@ -174,15 +159,31 @@ def eval(cfg, logger, model, data_size, eval_loader):
   std = [item * value_scale for item in std]
 
   ruler = VocCityscapesMetric()
-  eval_results = []
   data_time = AverageMeter()
   batch_time = AverageMeter()
   end = time.time()
-  model.eval()
 
+  # Load dataset
+  data_size = len(eval_dataset)
+  eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=False, num_workers=4, pin_memory=True, drop_last=False)
+
+  # Get model checkpoint.
+  checkpoint = torch.load(cfg['model_path'])
+
+  # Load model.
+  model = network.get_model().cuda()
+  model.load_state_dict(
+      safe_loader(
+          checkpoint['state_dict'],
+          use_model='single'))
+  logger.info(
+      f'Worker[{worker}]: Segmentation Network Total Params number: {count_model_param(model) / 1E6}M'
+  )
+
+  model.eval()
   process_count = 0
 
-  for i, (image, label) in enumerate(eval_loader):
+  for _, (image, label) in enumerate(eval_loader):
     assert image.shape[0] == label.shape[0]
     data_time.update(time.time() - end)
     for j in range(image.shape[0]):
@@ -213,9 +214,10 @@ def eval(cfg, logger, model, data_size, eval_loader):
       process_count += 1
 
       if process_count % 10 == 0 or process_count == data_size:
-        logger.info('Test: [{}/{}] '
+        logger.info('[Worker{}] Test: [{}/{}] '
                     'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
                     'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}).'.format(
+                        worker,
                         process_count,
                         data_size,
                         data_time=data_time,
@@ -224,41 +226,65 @@ def eval(cfg, logger, model, data_size, eval_loader):
       if cur_label is not None:
         hist_tmp, labeled_tmp, correct_tmp = ruler.hist_info(
             cfg['classes'], prediction, cur_label)
-        eval_results.append({
+        results_queue.put({
             'hist': hist_tmp,
             'labeled': labeled_tmp,
             'correct': correct_tmp
         })
 
-  ruler(eval_results, cfg['classes'])
-
-  if ruler.calculated:
-    logger.info(ruler)
-
 
 def main():
   logger, cfg, run_dir = get_logger_and_parser()
+  os.environ["CUDA_VISIBLE_DEVICES"] = '-1' if cfg['num_of_gpus'] <= 0 else ','.join(str(x) for x in range(cfg['num_of_gpus']))
+  cfg['multi_gpu'] = True if cfg['num_of_gpus'] > 1 else False
+
   model_path = os.path.join(run_dir, 'model')
-  model = network.get_model()
-  if cfg['multi_gpu']:
-    model = nn.DataParallel(model).cuda()
-  logger.info(
-      f'Segmentation Network Total Params number: {count_model_param(model) / 1E6}M'
-  )
   check_dir_exists(model_path)
 
-  # Get dataloader.
-  eval_loader, data_size = get_dataloader(cfg)
+  # Get dataset.
+  eval_dataset = get_dataset(cfg)
+  eval_datasize = len(eval_dataset)
 
-  # Load model.
-  checkpoint = torch.load(cfg['model_path'])
-  model.load_state_dict(
-      safe_loader(
-          checkpoint['state_dict'],
-          use_model='multi' if cfg['multi_gpu'] else 'single'))
+  results_queue = mp.Queue(eval_datasize)
 
-  eval(cfg, logger, model, data_size, eval_loader)
+  if cfg['num_of_gpus'] == 1:
+    eval_single_gpu(0, cfg, logger, eval_dataset, results_queue)
+  else:
+    # Multi-GPUs processing.
+    stride = int(np.ceil(eval_datasize / cfg['num_of_gpus']))
+    dataset_idx = list(range(eval_datasize))
+    procs_list = []
+    for n in range(cfg['num_of_gpus']):
+      e_record = min((n + 1) * stride, eval_datasize)
+      idx = dataset_idx[n * stride:e_record]
+      p = mp.Process(target=eval_single_gpu, args=(n, cfg, logger, Subset(eval_dataset, idx),
+                                                   results_queue,))
+      procs_list.append(p)
+      p.start()
+
+  if cfg['split'] != 'test':
+    eval_results = []
+    for _ in range(eval_datasize):
+        t = results_queue.get()
+        eval_results.append(t)
+
+    logger.info('Results accumulated.')
+
+    ruler = VocCityscapesMetric()
+    ruler(eval_results, cfg['classes'])
+
+    if ruler.calculated:
+      logger.info(ruler)
+
+  if cfg['num_of_gpus'] > 1:
+    for p in procs_list:
+      p.join()
 
 
 if __name__ == '__main__':
+  try:
+    mp.set_start_method('spawn')
+  except RuntimeError:
+    pass
+
   main()

@@ -36,8 +36,19 @@ SS stands for Single-Scale and MS stands for Multi-Scale which has scales includ
 During training phase, UNet used batch size of 8 and sync BN.
 |Model|meanIU(SS)|meanIU(MS)|
 |----|----|----|
-|UNet|68.403%||
+|UNet|68.403%|69.785%|
 ||||
+
+## Time consuming evaluation
+
+### **Evaluating phase on Cityscapes-19**
+This codebase implements multiprocessing manually. The implementation will be updated later. We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation.
+
+|Model|meanIU(SS)|Time consuming(SS)|meanIU(MS)|Time consuming(MS)|
+|----|----|----|----|----|
+|Naive|68.403%|≈22 minutes|69.785%|≈4 hours|
+|**Ours**|68.403%|≈7 minutes|69.785%|≈50 minutes|
+||||||
 
 
 ### TODO(xwd): Finish documents & annotations.
