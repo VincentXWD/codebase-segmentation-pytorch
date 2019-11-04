@@ -37,7 +37,6 @@ During training phase, UNet used batch size of 8 and sync BN.
 |Model|meanIU(SS)|meanIU(MS)|
 |----|----|----|
 |UNet|68.403%|69.785%|
-||||
 
 ## Time consuming evaluation
 
@@ -48,7 +47,6 @@ This codebase implements multiprocessing manually. The implementation will be up
 |----|----|----|----|----|
 |Naive|68.403%|≈22 minutes|69.785%|≈4 hours|
 |**Ours**|68.403%|≈7 minutes|69.785%|≈50 minutes|
-||||||
 
 
 ### TODO(xwd): Finish documents & annotations.
