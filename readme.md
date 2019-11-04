@@ -34,6 +34,7 @@ My personal codebase for segmentation tasks in pytorch.
 Please note that all backbones are Dilated ResNet-101.
 SS stands for Single-Scale and MS stands for Multi-Scale which has scales including [0.5, 0.75, 1.0, 1.25, 1.5, 1.75].
 During training phase, UNet used batch size of 8 and sync BN.
+
 |Model|meanIU(SS)|meanIU(MS)|
 |----|----|----|
 |UNet|68.403%|69.785%|
