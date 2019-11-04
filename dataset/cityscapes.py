@@ -95,7 +95,6 @@ class Cityscapes(data.Dataset):
       CityscapesClass('bicycle', 33, 18, 'vehicle', 7, True, False, (119, 11, 32)),
       CityscapesClass('license plate', -1, -1, 'vehicle', 7, False, True, (0, 0, 142)),
   ]
-
   def __init__(self,
                root,
                split='train',
@@ -153,6 +152,20 @@ class Cityscapes(data.Dataset):
         self.images.append(os.path.join(img_dir, file_name))
         self.targets.append(target_types)
 
+  def _filtering_unnecessary_labels(self, img, gt):
+      city_valid_label = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33]
+      # because the maxim id is 33, and 33 is in semantic_label
+      for i in range(33):
+          if i not in city_valid_label:
+              gt[gt == i] = 255  # equal to 255
+
+      # trainID: stuff: 0~10, thing: 11~18
+      for i in range(len(city_valid_label)):
+          gt[gt == city_valid_label[i]] = i
+
+      gt[gt == 255] = 255
+      return img, gt
+
   def __getitem__(self, index):
     """
         Args:
@@ -177,6 +190,8 @@ class Cityscapes(data.Dataset):
 
     image = np.asarray(image)
     target = np.asarray(target)
+
+    image, target = self._filtering_unnecessary_labels(image, target)
 
     if self.transform:
       image, target = self.transform(image, target)

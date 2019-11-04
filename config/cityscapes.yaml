@@ -1,7 +1,10 @@
 DATA:
-  classes: 34
-  data_path: '/data/xwd/cityscapes/'
-
+  classes: 19
+  data_path: /data/xwd/cityscapes/
+  # TODO(xwd): Support custom dataset.
+  train_list:
+  eval_list:
+  test_list:
 TRAIN:
   exp_name: unet_dilated_resnet101_baseline
   arch: unet
@@ -28,7 +31,6 @@ TRAIN:
   save_freq: 1
   resume:  # path to latest checkpoint (default: none)
   multi_gpu: True
-
 TEST:
   split: val  # split in [train, val and test]
   base_size: 2048  # based size for scaling

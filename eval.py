@@ -40,11 +40,21 @@ def get_logger_and_parser():
       help='Configuration file to use',
   )
 
+  parser.add_argument(
+      'opts',
+      help='',
+      default=None,
+      nargs=argparse.REMAINDER)
+
   args = parser.parse_args()
 
   assert args.config is not None
   cfg = config.load_cfg_from_cfg_file(args.config)
   args_dict = dict()
+
+  if args.opts is not None:
+      cfg = config.merge_cfg_from_list(cfg, args.opts)
+
   for arg in vars(args):
     args_dict[arg] = getattr(args, arg)
   args_dict.update(cfg)
@@ -134,6 +144,7 @@ def eval_in_scale(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
   prediction_crop = np.zeros((new_h, new_w, classes), dtype=float)
   count_crop = np.zeros((new_h, new_w), dtype=float)
 
+
   for index_h in range(0, grid_h):
     for index_w in range(0, grid_w):
       s_h = index_h * stride_h
@@ -192,7 +203,8 @@ def eval(cfg, logger, model, data_size, eval_loader):
         image_scale = cv2.resize(
             cur_image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
         prediction += eval_in_scale(model, image_scale, cfg['classes'],
-                                    cfg['test_h'], cfg['test_w'], h, w, mean, std)
+                                    cfg['test_h'], cfg['test_w'], h, w, mean,
+                                    std)
 
       prediction /= len(cfg['scales'])
       prediction = np.argmax(prediction, axis=2)
@@ -226,7 +238,6 @@ def eval(cfg, logger, model, data_size, eval_loader):
 
 def main():
   logger, cfg, run_dir = get_logger_and_parser()
-
   model_path = os.path.join(run_dir, 'model')
   model = network.get_model()
   if cfg['multi_gpu']:
