@@ -6,14 +6,11 @@ class VocCityscapesMetric(object):
   def __init__(self):
     np.seterr(divide='ignore', invalid='ignore')
 
-    # TODO(xwd): Change it if use other number of classes.
     self.names = [
-        'unlabeled', 'ego', 'rectification', 'out', 'static', 'dynamic',
-        'ground', 'road', 'sidewalk', 'parking', 'rail', 'building', 'wall',
-        'fence', 'guard', 'bridge', 'tunnel', 'pole', 'polegroup', 'traffic',
-        'traffic', 'vegetation', 'terrain', 'sky', 'person', 'rider', 'car',
-        'truck', 'bus', 'caravan', 'trailer', 'train', 'motorcycle', 'bicycle',
-        'license'
+        'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+        'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+        'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
+        'bicycle'
     ]
     self.iu = None
     self.mean_pixel_acc = None
