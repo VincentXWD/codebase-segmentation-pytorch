@@ -42,7 +42,7 @@ During training phase, UNet used batch size of 8 and sync BN.
 ## Time consuming evaluation
 
 ### **Evaluating phase on Cityscapes-19**
-This codebase implements multiprocessing manually. The implementation will be updated later. We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation.
+This codebase implements multiprocessing manually. The implementation document will be updated later. We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation.
 
 |Model|meanIU(SS)|Time consuming(SS)|meanIU(MS)|Time consuming(MS)|
 |----|----|----|----|----|
