@@ -2,10 +2,12 @@
 
 My personal codebase for segmentation tasks in pytorch.
 
+Support distributed training now.
+
 ## Requirements
 - **python>=3.6**
 - **opencv-python==3.4.2.17**
-- torch>0.4.0
+- torch>=1.0.10
 - imageio
 - pandas
 - medpy
@@ -41,8 +43,16 @@ During training phase, UNet used batch size of 8 and sync BN.
 
 ## Time consuming evaluation
 
+### **Training phase on Cityscapes-19**
+This codebase implements multiprocessing for training manually. The implementation document will be updated later.
+
+We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Setting batch_size=8, training 200 epochs on cityscapes-19 dataset. Experiment results will be updated soon.
+
+
 ### **Evaluating phase on Cityscapes-19**
-This codebase implements multiprocessing manually. The implementation will be updated later. We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation.
+We also implement concurrent evaluating method.
+
+We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation in evaluating phase.
 
 |Model|meanIU(SS)|Time consuming(SS)|meanIU(MS)|Time consuming(MS)|
 |----|----|----|----|----|

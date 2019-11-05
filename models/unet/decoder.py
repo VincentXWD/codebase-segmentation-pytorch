@@ -47,8 +47,7 @@ class UnetDecoder(BaseModel):
                decoder_channels=(256, 128, 64, 32, 16),
                final_channels=1,
                use_batchnorm=True,
-               center=False,
-               classes=1):
+               center=False):
     super().__init__()
 
     if center:

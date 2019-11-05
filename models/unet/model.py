@@ -33,8 +33,8 @@ class Unet(EncoderDecoder):
       decoder_use_batchnorm=True,
       decoder_channels=(256, 128, 64, 32, 16),
       classes=1,
-      activation='sigmoid',
-      center=False,  # usefull for VGG models
+      center=False,
+      criterion=None,
   ):
     encoder = get_encoder(encoder_name, encoder_weights=encoder_weights)
 
@@ -46,6 +46,6 @@ class Unet(EncoderDecoder):
         center=center,
     )
 
-    super().__init__(encoder, decoder, activation)
+    super().__init__(encoder, decoder, criterion)
 
     self.name = 'u-{}'.format(encoder_name)
