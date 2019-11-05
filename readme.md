@@ -50,6 +50,7 @@ We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Setting batch_size=8
 
 
 ### **Evaluating phase on Cityscapes-19**
+
 We also implement concurrent evaluating method.
 
 We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison with naive implementation in evaluating phase.
