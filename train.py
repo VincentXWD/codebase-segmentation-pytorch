@@ -125,7 +125,7 @@ def get_dataloader():
       batch_size=cfg['batch_size'] // cfg['world_size'],
       shuffle=(train_sampler is None),
       num_workers=4,
-      pin_memory=False,
+      pin_memory=True,
       sampler=train_sampler,
       drop_last=True)
 

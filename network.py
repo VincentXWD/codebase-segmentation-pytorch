@@ -1,7 +1,7 @@
 from models import Unet
 
 
-def get_model(criterion):
+def get_model(criterion=None):
   # TODO(xwd): add flags for all entries.
   return Unet(
       encoder_name='dilated_resnet101',

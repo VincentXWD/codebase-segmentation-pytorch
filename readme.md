@@ -48,6 +48,10 @@ This codebase implements multiprocessing for training manually. The implementati
 
 We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Setting batch_size=8, training 200 epochs on cityscapes-19 dataset. Experiment results will be updated soon.
 
+|Model|Training time|
+|----|----|----|----|
+|Naive|≈27 hours|
+|**Ours**|7 hours 44 minutes|
 
 ### **Evaluating phase on Cityscapes-19**
 
@@ -59,6 +63,18 @@ We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Here's comparison wi
 |----|----|----|----|----|
 |Naive|68.403%|≈22 minutes|69.785%|≈4 hours|
 |**Ours**|68.403%|≈7 minutes|69.785%|≈50 minutes|
+
+
+### **Performance of models**
+
+This section accumulated all models' performance implemented by this framework.
+
+All models are trained in 200 epochs and with batch size equals 8. More details please refer the config files.
+
+|Method|Backbone|Dataset|meanIU(SS)|meanIU(MS)|
+|---|---|---|---|----|
+|UNet|Dilated-ResNet101|Cityscapes-19|70.221%|72.500%|
+
 
 
 ### TODO(xwd): Finish documents & annotations.
