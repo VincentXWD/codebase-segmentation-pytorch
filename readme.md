@@ -49,7 +49,7 @@ This codebase implements multiprocessing for training manually. The implementati
 We use 4 Nvidia GEFORCE GTX 1080 Tis to do this experiment. Setting batch_size=8, training 200 epochs on cityscapes-19 dataset. Experiment results will be updated soon.
 
 |Model|Training time|
-|----|----|----|----|
+|----|----|
 |Naive|≈27 hours|
 |**Ours**|7 hours 44 minutes|
 
