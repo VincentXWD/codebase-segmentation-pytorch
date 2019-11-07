@@ -12,6 +12,7 @@ import shutil
 import os
 import torch
 import time
+import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -131,7 +132,6 @@ def get_dataloader():
 
 
 def train_epoch(train_loader, model, optimizer, epoch):
-  # TODO(xwd): Add IoU calculator.
   batch_time = AverageMeter()
   data_time = AverageMeter()
   loss_meter = AverageMeter()
@@ -165,16 +165,18 @@ def train_epoch(train_loader, model, optimizer, epoch):
 
     loss_meter.update(loss.item(), n)
     batch_time.update(time.time() - end)
-    end = time.time()
     del loss
+    end = time.time()
 
     # TODO(xwd): Add segment-updating learning rates.
     # Update learning rate.
     current_iter = epoch * len(train_loader) + i + 1
     current_lr = poly_learning_rate(
         cfg['base_lr'], current_iter, max_iter, power=cfg['power'])
-    for param_group in optimizer.param_groups:
-      param_group['lr'] = current_lr
+
+    # param_groups: 0 for encoder, 1 for decoder.
+    optimizer.param_groups[0]['lr'] = current_lr
+    optimizer.param_groups[1]['lr'] = current_lr * cfg['decoder_lr_mul']
 
     remain_iter = max_iter - current_iter
     remain_time = remain_iter * batch_time.avg
@@ -201,26 +203,21 @@ def main():
   dist.init_process_group('nccl', init_method='env://')
 
   # Set model & criterion.
-  # TODO(xwd): Adapt model type with config settings.
   model_path = os.path.join(run_dir, 'model')
   criterion = nn.CrossEntropyLoss(ignore_index=cfg['ignore_label'])
   model = network.get_model(criterion, cfg['auxloss'], cfg['auxloss_weight'])
 
-  if cfg['multi_gpu']:
-    if cfg['sync_bn']:
-      if main_process():
-        logger.info('Convert batch norm layers to be sync.')
+  if cfg['sync_bn']:
+    if main_process():
+      logger.info('Convert batch norm layers to be sync.')
 
-      # If you're using pytorch version below 1.3.0, we'll use manually-implemented sync_bn.
-      # More details please refer: https://github.com/vacancy/Synchronized-BatchNorm-PyTorch.
-      try:
-        model = nn.SyncBatchNorm.convert_sync_batchnorm(model).cuda()
-      except AttributeError:
-        from misc.sync_batchnorm.batchnorm import convert_model
-        model = convert_model(model).cuda()
-
-    model = nn.parallel.DistributedDataParallel(
-        model, device_ids=[cfg['local_rank']], output_device=cfg['local_rank'])
+    # If you're using pytorch version below 1.3.0, we'll use manually-implemented sync_bn.
+    # More details please refer: https://github.com/vacancy/Synchronized-BatchNorm-PyTorch.
+    try:
+      model = nn.SyncBatchNorm.convert_sync_batchnorm(model).cuda()
+    except AttributeError:
+      from misc.sync_batchnorm.batchnorm import convert_model
+      model = convert_model(model).cuda()
 
   if main_process():
     logger.info(
@@ -229,13 +226,20 @@ def main():
 
   check_dir_exists(model_path)
 
-  # Set optimizer.
-  # TODO(xwd): Set different learning rate for different parts of the model.
+  # Set optimizer. Different learning rate for encoder an decoder.
+  # params_list: 0 for encoder, 1 for decoder.
+  param_list = [
+      dict(params=model.encoder.parameters(), lr=cfg['base_lr']),
+      dict(params=model.decoder.parameters(), lr=cfg['base_lr'] * cfg['decoder_lr_mul'])
+  ]
   optimizer = optim.SGD(
-      model.parameters(),
+      param_list,
       lr=cfg['base_lr'],
       momentum=cfg['momentum'],
       weight_decay=cfg['weight_decay'])
+
+  model = nn.parallel.DistributedDataParallel(
+      model, device_ids=[cfg['local_rank']], output_device=cfg['local_rank'])
 
   # Resume.
   # TODO(xwd): This method will consume more GPU memory in main GPU. Try to reduce it.
@@ -243,9 +247,7 @@ def main():
     checkpoint = torch.load(cfg['resume'])
     cfg['start_epoch'] = checkpoint['epoch']
     model.load_state_dict(
-        safe_loader(
-            checkpoint['state_dict'],
-            use_model='multi' if cfg['multi_gpu'] else 'single'))
+        safe_loader(checkpoint['state_dict'], use_model='multi'))
     optimizer.load_state_dict(checkpoint['optimizer'])
     del checkpoint
   else:
@@ -254,9 +256,7 @@ def main():
       checkpoint = torch.load(model_save_path)
       cfg['start_epoch'] = checkpoint['epoch']
       model.load_state_dict(
-          safe_loader(
-              checkpoint['state_dict'],
-              use_model='multi' if cfg['multi_gpu'] else 'single'))
+          safe_loader(checkpoint['state_dict'], use_model='multi'))
       optimizer.load_state_dict(checkpoint['optimizer'])
       if main_process():
         logger.info(
@@ -269,7 +269,6 @@ def main():
 
   # Training.
   for epoch in range(cfg['start_epoch'], cfg['epochs']):
-    # TODO(xwd): Add auxiliary loss as an optional loss for some specific type of models.
     if cfg['multiprocessing_distributed']:
       train_sampler.set_epoch(epoch)
 

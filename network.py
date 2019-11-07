@@ -1,8 +1,8 @@
 from models import Unet
 from models import PSPNet
 
-# Unet
-# def get_model(criterion=None):
+# Unet. Please note that only support edge size is 4 times power of 2.
+# def get_model(criterion=None, auxiliary_loss=False, auxloss_weight=0):
 #   return Unet(
 #       encoder_name='dilated_resnet101',
 #       encoder_weights='imagenet',

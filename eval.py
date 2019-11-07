@@ -89,8 +89,12 @@ def eval_each(model, image, mean, std=None, flip=True):
   _, _, h_i, w_i = image.shape
   _, _, h_o, w_o = output.shape
   if (h_o != h_i) or (w_o != w_i):
+    if h_o % 8 == 0:
+      align_corners = False
+    elif (h_o - 1) % 8 == 0:
+      align_corners = True
     output = F.interpolate(
-        output, (h_i, w_i), mode='bilinear', align_corners=True)
+        output, (h_i, w_i), mode='bilinear', align_corners=align_corners)
   output = F.softmax(output, dim=1)
 
   if flip:
@@ -126,7 +130,6 @@ def eval_in_scale(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
   grid_w = int(np.ceil(float(new_w - crop_w) / stride_w) + 1)
   prediction_crop = np.zeros((new_h, new_w, classes), dtype=float)
   count_crop = np.zeros((new_h, new_w), dtype=float)
-
 
   for index_h in range(0, grid_h):
     for index_w in range(0, grid_w):
@@ -165,7 +168,7 @@ def eval_single_gpu(worker, cfg, logger, eval_dataset, results_queue):
 
   # Load dataset
   data_size = len(eval_dataset)
-  eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=False, num_workers=4, pin_memory=True, drop_last=False)
+  eval_loader = DataLoader(eval_dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True, drop_last=False)
 
   # Get model checkpoint.
   checkpoint = torch.load(cfg['model_path'])

@@ -17,8 +17,9 @@ TRAIN:
   rotate_min: -10
   rotate_max: 10
   ignore_label: 255
-  batch_size: 8
+  batch_size: 16
   base_lr: 0.01
+  decoder_lr_mul: 10
   epochs: 200
   start_epoch: 0
   auxloss: True
@@ -30,7 +31,6 @@ TRAIN:
   save_freq: 1
   resume:  # path to latest checkpoint (default: none)
   num_of_gpus: 1
-  multi_gpu: True
 TEST:
   split: val  # split in [train, val and test]
   base_size: 2048  # based size for scaling
@@ -39,8 +39,8 @@ TEST:
   scales: [1.0]  # evaluation scales, ms as [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
   index_start: 0  # evaluation start index in list
   index_step: 0  # evaluation step index in list, 0 means to end
-  model_path: runs/cityscapes/pspnet_dilated_resnet101_baseline/model/checkpoint_200.pth  # evaluation model path
-  save_folder: runs/cityscapes/pspnet_dilated_resnet101_baseline/result/checkpoint_200/val/  # results save folder
+  model_path: runs/cityscapes_pspnet/pspnet_dilated_resnet101_baseline/model/checkpoint_200.pth  # evaluation model path
+  save_folder: runs/cityscapes_pspnet/pspnet_dilated_resnet101_baseline/result/checkpoint_200/val/  # results save folder
 DISTRIBUTED:
   multiprocessing_distributed: True
   world_size: 1

@@ -32,11 +32,10 @@ class PSPNet(BaseModel):
     self.auxiliary_loss = auxiliary_loss
     self.auxloss_weight = auxloss_weight
     # Add auxiliary layer for encoder.
-    if self.auxiliary_loss:
-      self.aux = nn.Sequential(
-          nn.Conv2d(1024, 256, kernel_size=3, padding=1, bias=False),
-          BatchNorm(256), nn.ReLU(inplace=True),
-          nn.Conv2d(256, classes, kernel_size=1))
+    self.aux = nn.Sequential(
+        nn.Conv2d(1024, 256, kernel_size=3, padding=1, bias=False),
+        BatchNorm(256), nn.ReLU(inplace=True),
+        nn.Conv2d(256, classes, kernel_size=1))
 
     if encoder_weights == None:
       self.encoder = get_encoder(encoder_name, encoder_weights=encoder_weights)
