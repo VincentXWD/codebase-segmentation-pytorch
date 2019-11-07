@@ -7,7 +7,7 @@ Support distributed training now.
 ## Requirements
 - **python>=3.6**
 - **opencv-python==3.4.2.17**
-- torch>=1.0.10
+- torch>=1.0.10(better >= 1.3.0)
 - imageio
 - pandas
 - medpy
@@ -30,6 +30,7 @@ Support distributed training now.
   conda env create -f environment.yml
   ```
 
+* **Please note that if you're using an old version of CUDA. Please modify the pytorch and torchvision version in requirements.txt but make sure the version of pytorch supports parallel computing.**
 
 ## Experiment results
 ### **Cityscapes-19**

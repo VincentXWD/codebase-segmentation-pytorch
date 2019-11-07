@@ -30,7 +30,6 @@ from utils.safe_loader import safe_loader
 from utils.file_ops import check_dir_exists
 from misc.metrics.average_meter import AverageMeter
 from misc.metrics.intersection_union import InterSectionAndUnion
-from misc.sync_batchnorm.batchnorm import convert_model
 from misc import get_logger, config
 from misc.optimize import poly_learning_rate
 from dataset import cityscapes
@@ -211,9 +210,14 @@ def main():
     if cfg['sync_bn']:
       if main_process():
         logger.info('Convert batch norm layers to be sync.')
-      # Manually-implemented sync_bn is deprecated. Use pytorch implementation instead.
-      # model = convert_model(model)
-      model = nn.SyncBatchNorm.convert_sync_batchnorm(model).cuda()
+
+      # If you're using pytorch version below 1.3.0, we'll use manually-implemented sync_bn.
+      # More details please refer: https://github.com/vacancy/Synchronized-BatchNorm-PyTorch.
+      try:
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model).cuda()
+      except AttributeError:
+        from misc.sync_batchnorm.batchnorm import convert_model
+        model = convert_model(model).cuda()
 
     model = nn.parallel.DistributedDataParallel(
         model, device_ids=[cfg['local_rank']], output_device=cfg['local_rank'])
