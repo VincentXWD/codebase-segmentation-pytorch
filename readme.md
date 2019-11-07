@@ -21,7 +21,7 @@ Support distributed training now.
 
   You can install all requirements according to the requirements.txt by the command below:
   ```
-  pip install -r requirements.txt
+  pip install -r requirements.txt --user
   ```
 * **Using conda [yml](./environment.yml) configure.**
 
