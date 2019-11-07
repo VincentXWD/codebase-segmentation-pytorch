@@ -2,7 +2,7 @@
 
 
 # Single-Node Multi-Process.
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 train.py 
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 train.py --config=config/cityscapes_pspnet.yaml
 
 # TODO(xwd): Multi-Node Multi-Process. Not implemented yet because of lacking of computing resources.
 # Any other information please refer: `https://zhuanlan.zhihu.com/p/52110617`

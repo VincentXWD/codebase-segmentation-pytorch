@@ -1,0 +1,44 @@
+DATA:
+  classes: 19
+  data_path: /data/xwd/cityscapes/
+  # TODO(xwd): Support custom dataset.
+  train_list:
+  eval_list:
+  test_list:
+TRAIN:
+  exp_name: unet_dilated_resnet101_baseline
+  arch: unet
+  layers: 101
+  sync_bn: True
+  train_h: 512
+  train_w: 512
+  scale_min: 0.5
+  scale_max: 2.0
+  rotate_min: -10
+  rotate_max: 10
+  ignore_label: 255
+  batch_size: 8
+  base_lr: 0.01
+  epochs: 200
+  start_epoch: 0
+  power: 0.9
+  momentum: 0.9
+  weight_decay: 0.0001
+  print_freq: 10
+  save_freq: 1
+  resume:  # path to latest checkpoint (default: none)
+  num_of_gpus: 1
+  multi_gpu: True
+TEST:
+  split: val  # split in [train, val and test]
+  base_size: 2048  # based size for scaling
+  test_h: 512
+  test_w: 512
+  scales: [1.0]  # evaluation scales, ms as [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+  index_start: 0  # evaluation start index in list
+  index_step: 0  # evaluation step index in list, 0 means to end
+  model_path: runs/cityscapes/unet_dilated_resnet101_baseline/model/checkpoint_200.pth  # evaluation model path
+  save_folder: runs/cityscapes/unet_dilated_resnet101_baseline/result/checkpoint_200/val/  # results save folder
+DISTRIBUTED:
+  multiprocessing_distributed: True
+  world_size: 1

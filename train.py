@@ -35,12 +35,11 @@ from misc import get_logger, config
 from misc.optimize import poly_learning_rate
 from dataset import cityscapes
 
-
 cfg, logger = None, None
 
 
 def main_process():
-    return cfg['local_rank'] == 0
+  return cfg['local_rank'] == 0
 
 
 def get_logger_and_parser():
@@ -50,7 +49,7 @@ def get_logger_and_parser():
   parser.add_argument(
       '--config',
       type=str,
-      default='config/cityscapes.yaml',
+      default='config/cityscapes_pspnet.yaml',
       help='Configuration file to use',
   )
   parser.add_argument(
@@ -206,7 +205,7 @@ def main():
   # TODO(xwd): Adapt model type with config settings.
   model_path = os.path.join(run_dir, 'model')
   criterion = nn.CrossEntropyLoss(ignore_index=cfg['ignore_label'])
-  model = network.get_model(criterion)
+  model = network.get_model(criterion, cfg['auxloss'], cfg['auxloss_weight'])
 
   if cfg['multi_gpu']:
     if cfg['sync_bn']:
@@ -216,7 +215,8 @@ def main():
       # model = convert_model(model)
       model = nn.SyncBatchNorm.convert_sync_batchnorm(model).cuda()
 
-    model = nn.parallel.DistributedDataParallel(model, device_ids=[cfg['local_rank']], output_device=cfg['local_rank'])
+    model = nn.parallel.DistributedDataParallel(
+        model, device_ids=[cfg['local_rank']], output_device=cfg['local_rank'])
 
   if main_process():
     logger.info(
@@ -278,9 +278,9 @@ def main():
       logger.info(f'Saving checkpoint to: {filename}')
       torch.save(
           {
-            'epoch': epoch_log,
-            'state_dict': model.state_dict(),
-            'optimizer': optimizer.state_dict()
+              'epoch': epoch_log,
+              'state_dict': model.state_dict(),
+              'optimizer': optimizer.state_dict()
           }, filename)
       if epoch_log / cfg['save_freq'] > 2:
         deletename = os.path.join(

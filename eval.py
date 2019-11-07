@@ -32,7 +32,7 @@ from dataset import cityscapes
 
 def get_logger_and_parser():
   parser = argparse.ArgumentParser(description='config')
-  parser.add_argument('--config', type=str, default='config/cityscapes.yaml', help='Configuration file to use')
+  parser.add_argument('--config', type=str, default='config/cityscapes_pspnet.yaml', help='Configuration file to use')
   parser.add_argument('--num_of_gpus', type=int, default=0)
   parser.add_argument('opts', help='', default=None, nargs=argparse.REMAINDER)
 
