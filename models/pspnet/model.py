@@ -24,18 +24,25 @@ class PSPNet(BaseModel):
     feature_dim = 2048
     self.ppm = PPM(feature_dim, int(feature_dim / len(bins)), bins, BatchNorm)
 
-    self.decoder = nn.Sequential(
+    self.classifier = nn.Sequential(
         nn.Conv2d(feature_dim * 2, 512, kernel_size=3, padding=1, bias=False),
-        BatchNorm(512), nn.ReLU(inplace=True),
+        BatchNorm(512),
+        nn.ReLU(inplace=True),
+        nn.Dropout2d(p=0.1),
         nn.Conv2d(512, classes, kernel_size=1))
 
+    # Add auxiliary layer for encoder.
     self.auxiliary_loss = auxiliary_loss
     self.auxloss_weight = auxloss_weight
-    # Add auxiliary layer for encoder.
     self.aux = nn.Sequential(
         nn.Conv2d(1024, 256, kernel_size=3, padding=1, bias=False),
-        BatchNorm(256), nn.ReLU(inplace=True),
+        BatchNorm(256),
+        nn.ReLU(inplace=True),
+        nn.Dropout2d(p=0.1),
         nn.Conv2d(256, classes, kernel_size=1))
+
+    # Combine them as `decoder` to enable segment lr updating.
+    self.decoder = nn.ModuleList([self.classifier, self.ppm, self.aux])
 
     if encoder_weights == None:
       self.encoder = get_encoder(encoder_name, encoder_weights=encoder_weights)
@@ -63,13 +70,15 @@ class PSPNet(BaseModel):
     x = x[0]
 
     x = self.ppm(x)
-    x = self.decoder(x)
-    x = F.interpolate(x, size=(h, w), mode='bilinear', align_corners=align_corners)
+    x = self.classifier(x)
+    x = F.interpolate(
+        x, size=(h, w), mode='bilinear', align_corners=align_corners)
 
     if y is not None and self.criterion is not None:
       if self.auxiliary_loss:
         x_aux = self.aux(x_aux)
-        x_aux = F.interpolate(x_aux, size=(h, w), mode='bilinear', align_corners=align_corners)
+        x_aux = F.interpolate(
+            x_aux, size=(h, w), mode='bilinear', align_corners=align_corners)
 
         main_loss = self.criterion(x, y)
         aux_loss = self.criterion(x_aux, y)

@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.distributed as dist
+import cv2
 
 import network
 import utils.transforms as transform
@@ -145,6 +146,7 @@ def train_epoch(train_loader, model, optimizer, epoch):
     # Avoid blocking during GPUs read data.
     image = image.cuda(non_blocking=True)
     target = target.type(torch.LongTensor).cuda(non_blocking=True)
+
     loss = model(image, target)
 
     # Backprop.
@@ -206,6 +208,8 @@ def main():
   model_path = os.path.join(run_dir, 'model')
   criterion = nn.CrossEntropyLoss(ignore_index=cfg['ignore_label'])
   model = network.get_model(criterion, cfg['auxloss'], cfg['auxloss_weight'])
+  if main_process():
+    logger.info(model)
 
   if cfg['sync_bn']:
     if main_process():
@@ -232,6 +236,7 @@ def main():
       dict(params=model.encoder.parameters(), lr=cfg['base_lr']),
       dict(params=model.decoder.parameters(), lr=cfg['base_lr'] * cfg['decoder_lr_mul'])
   ]
+
   optimizer = optim.SGD(
       param_list,
       lr=cfg['base_lr'],
@@ -293,4 +298,7 @@ def main():
 
 
 if __name__ == '__main__':
+  cv2.ocl.setUseOpenCL(False)
+  cv2.setNumThreads(0)
+
   main()

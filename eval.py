@@ -174,11 +174,12 @@ def eval_single_gpu(worker, cfg, logger, eval_dataset, results_queue):
   checkpoint = torch.load(cfg['model_path'])
 
   # Load model.
-  model = network.get_model().cuda()
+  model = network.get_model()
+  model = torch.nn.DataParallel(model).cuda()
   model.load_state_dict(
       safe_loader(
           checkpoint['state_dict'],
-          use_model='single'))
+          use_model='multi'))
   logger.info(
       f'Worker[{worker}]: Segmentation Network Total Params number: {count_model_param(model) / 1E6}M'
   )
