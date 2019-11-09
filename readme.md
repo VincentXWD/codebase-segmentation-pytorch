@@ -34,7 +34,7 @@ Support distributed training now.
 
 ## Experiment results
 ### **Cityscapes-19**
-Please note that all backbones are Dilated ResNet-101.
+Please note that all backbones are ResNet-101.
 SS stands for Single-Scale and MS stands for Multi-Scale which has scales including [0.5, 0.75, 1.0, 1.25, 1.5, 1.75].
 During training phase, UNet used batch size of 8 and sync BN.
 
@@ -74,7 +74,8 @@ All models are trained in 200 epochs and with batch size equals 8. More details 
 
 |Method|Backbone|Dataset|meanIU(SS)|meanIU(MS)|
 |---|---|---|---|----|
-|UNet|Dilated-ResNet101|Cityscapes-19|70.221%|72.500%|
+|UNet|ResNet101|Cityscapes-19|70.221%|72.500%|
+|PSPNet|ResNet101|Cityscapes-19|72.681%|74.863%|
 
 
 
