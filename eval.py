@@ -122,6 +122,9 @@ def eval_in_scale(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
         pad_w - pad_w_half,
         cv2.BORDER_CONSTANT,
         value=mean)
+  if len(image.shape) == 2:
+    # Unsqueeze for gray image.
+    image = np.expand_dims(image, 2)
 
   new_h, new_w, _ = image.shape
   stride_h = int(np.ceil(crop_h * stride_rate))
