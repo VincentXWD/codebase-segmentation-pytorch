@@ -168,14 +168,17 @@ def eval_single_gpu(worker, cfg, logger, eval_dataset, results_queue):
 
   # Load dataset
   data_size = len(eval_dataset)
-  eval_loader = DataLoader(eval_dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True, drop_last=False)
+  eval_loader = DataLoader(eval_dataset, batch_size=2, shuffle=False, num_workers=4, pin_memory=True, drop_last=False)
 
   # Get model checkpoint.
   checkpoint = torch.load(cfg['model_path'])
 
   # Load model.
   model = network.get_model()
+  if worker == 0:
+    logger.info(model)
   model = torch.nn.DataParallel(model).cuda()
+
   model.load_state_dict(
       safe_loader(
           checkpoint['state_dict'],
@@ -207,6 +210,10 @@ def eval_single_gpu(worker, cfg, logger, eval_dataset, results_queue):
           new_h = round(long_size / float(w) * h)
         image_scale = cv2.resize(
             cur_image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        if len(image_scale.shape) == 2:
+          # Unsqueeze for gray image.
+          image_scale = np.expand_dims(image_scale, 2)
+
         prediction += eval_in_scale(model, image_scale, cfg['classes'],
                                     cfg['test_h'], cfg['test_w'], h, w, mean,
                                     std)
