@@ -115,7 +115,7 @@ All models are trained in 200 epochs and with batch size equals 8. More details 
 |UNet|ResNet101|Cityscapes-19|70.221%|72.500%|None|
 |PSPNet|ResNet101|Cityscapes-19|72.681%|74.863%|[Google Drive](https://drive.google.com/file/d/1yJD3SZvcPHXvfqjuYh2Bv_gthmN-WVEK/view?usp=sharing)|
 |PSPNet|Dilated-ResNet50|Cityscapes-19|75.782%|76.579%|[Google Drive](https://drive.google.com/file/d/1Gph-t4zuJowP9cNYFmCuT1oKsg0onAQv/view?usp=sharing)|
-|PSPNet|Dilated-ResNet101|Cityscapes-19|-%|-%|[Under constructing]()|
+|PSPNet|Dilated-ResNet101|Cityscapes-19|77.452%|78.585%|[Google Drive](https://drive.google.com/file/d/1Hee-hu0n686W_-Ck0NbFcfvTKkwLLReS/view?usp=sharing)|
 
 
 ## TODO(xwd): Finish documents & annotations.
