@@ -249,7 +249,7 @@ def main():
   # Resume.
   # TODO(xwd): This method will consume more GPU memory in main GPU. Try to reduce it.
   if cfg['resume'] is not None and os.path.isfile(cfg['resume']):
-    checkpoint = torch.load(cfg['resume'])
+    checkpoint = torch.load(cfg['resume'], map_location=torch.device('cpu'))
     cfg['start_epoch'] = checkpoint['epoch']
     model.load_state_dict(
         safe_loader(checkpoint['state_dict'], use_model='multi'))
@@ -258,7 +258,7 @@ def main():
   else:
     model_save_path = read_newest_model_path(model_path)
     if model_save_path is not None:
-      checkpoint = torch.load(model_save_path)
+      checkpoint = torch.load(model_save_path, map_location=torch.device('cpu'))
       cfg['start_epoch'] = checkpoint['epoch']
       model.load_state_dict(
           safe_loader(checkpoint['state_dict'], use_model='multi'))
